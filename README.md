@@ -1,6 +1,6 @@
 # Next.js Blog Project with Arcjet and Fly.io
 
-This project is a Next.js blog application integrated with Arcjet for bot detection and rate limiting, Fly.io for hosting, and Prisma for database interactions.
+This project is a Next.js blog application integrated with Arcjet for bot detection and Fly.io.
 
 
 ## Usage
