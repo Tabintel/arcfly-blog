@@ -1,42 +1,64 @@
 "use client";
-import React, { useState, useCallback } from "react";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
 import moment from "moment";
+import axios from "axios";
 import Link from "next/link";
-import { ThreeDots } from "react-loader-spinner";
 import { BiChevronRight } from "react-icons/bi";
 import toast from "react-hot-toast";
 import Loader from "@/components/loader";
 import { allPosts } from "../../../.contentlayer/generated/index.mjs";
-const CommentData = [
-  {
-    id: 4565483929237,
-    shortDescription:
-      " Discover the benefits of sustainable gardening and tips to get started.",
-    author: "Jane Smith",
-    createdAt: "April 15, 2023",
-  },
-  {
-    id: 44547484984,
-    shortDescription:
-      "From sustainable materials to energy-efficient upgrades, we&apos;ve got you covered.",
-    author: "Michael Johnson",
-    createdAt: "March 28, 2023",
-  },
-  {
-    id: 4745644647884,
-    shortDescription:
-      "Your choices when it comes to your wardrobe. Reduce waste and support ethical brands.",
-    author: "Sarah Lee",
-    createdAt: "February 10, 2023",
-  },
-];
 const MainContent = () => {
-  // console.log(allPosts);
+  const [body, setBody] = useState("");
+  const [comment, setComment] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [commentisloading, setCommentIsLoading] = useState(false);
+  const handleCreateComment = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axios.post("/api/comment", {
+        body: body,
+        postId: allPosts[0]?.url_path,
+      });
+      setBody("");
+      setLoading(false);
+      toast.success("Comment successfully created");
+      // setComment(data);
+      setComment([data, ...comment]);
+    } catch (error) {
+      setBody("");
+      setLoading(false);
+      toast.error(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
+    }
+  };
+   const path = `/api/comment?query=${allPosts[0]?.url_path}`;
+   // console.log(comment)
 
+   useEffect(() => {
+     const getAllComment = async () => {
+       setCommentIsLoading(true);
+       try {
+         const { data } = await axios.get(`${path}`);
+         setBody("");
+         setCommentIsLoading(false);
+         setComment(data);
+       } catch (error) {
+         toast.error(
+           error.response && error.response.data.message
+             ? error.response.data.message
+             : error.message
+         );
+       }
+     };
+     getAllComment();
+   }, [setComment, setCommentIsLoading]);
   return (
     <div className="flex flex-col relative w-full gap-4">
       {/* {loading && <Loader />} */}
+      {commentisloading && <Loader />}
       <div className="w-full flex flex-col gap-8">
         <div className="w-full z-20 flex items-center justify-center bg-[#F3F4F6] py-24">
           <div className="w-[90%] lg:w-[700px] max-w-custom_1 flex flex-col items-start gap-4 justify-center mx-auto">
@@ -172,10 +194,13 @@ const MainContent = () => {
                   </h3>
                   <h5 className="text-lg flex items-center gap-4 font-semibold">
                     <span>by {allPosts[0]?.author}</span>
-                    <span> {moment(allPosts[0]?.createdAt).format('DD MMM YYYY')}</span>
+                    <span>
+                      {" "}
+                      {moment(allPosts[0]?.createdAt).format("DD MMM YYYY")}
+                    </span>
                   </h5>
                   <p className="text-lg font-semibold">
-                           {allPosts[0]?.shortdescription}
+                    {allPosts[0]?.shortdescription}
                   </p>
                 </div>
                 {/* 8BC9F6
@@ -247,14 +272,28 @@ const MainContent = () => {
                       >
                         Comment
                         <textarea
+                          value={body}
+                          name={"body"}
+                          onChange={(e) => setBody(e.target.value)}
                           type="text"
                           className="textarea h-[130px] outline-none"
                         />
                       </label>
 
                       <div className="flex pt-4">
-                        <button className="btn py-3 px-8 rounded-xl text-white text-lg">
-                          Submit
+                        <button
+                          disabled={body === "" || loading}
+                          onClick={handleCreateComment}
+                          className="btn py-3 px-8 rounded-xl text-white text-lg"
+                        >
+                          {loading ? (
+                            <span className="flex items-center gap-6">
+                              <Loader type={"dots"} />
+                              Comment in progress
+                            </span>
+                          ) : (
+                            "Submit"
+                          )}
                         </button>
                       </div>
                     </form>
@@ -263,24 +302,45 @@ const MainContent = () => {
                   {/* comment lisiting */}
                   <div className="flex w-full py-8 flex-col gap-4">
                     <h4 className="text-4xl font-bold">Comments</h4>
-                    <div className="w-full lg:w-[600px] flex flex-col gap-4">
-                      {CommentData?.map((data, index) => {
-                        return (
-                          <div key={index} className="w-full flex items-center gap-4">
-                            <img
-                              src="https://generated.vusercontent.net/placeholder.svg"
-                              alt=""
-                              className="object-cover h-[60px] w-[60px] rounded-full"
-                            />
-                            <h4 className="text-lg font-bold">
-                              {data?.author}
-                              <span className="block text-sm text-grey font-normal">
-                                {data?.shortDescription}
-                              </span>
-                            </h4>
-                          </div>
-                        );
-                      })}
+                    <div className="w-full">
+                      {comment?.length === 0 ? (
+                        <span className="block text-xl text-[#000]">
+                          No Comments
+                        </span>
+                      ) : (
+                        <div className="w-full lg flex flex-col gap-4">
+                          {comment?.map((data, index) => {
+                            return (
+                              <div
+                                key={index}
+                                className="w-full flex items-center gap-4"
+                              >
+                                <img
+                                  src={data?.userimage}
+                                  alt=""
+                                  className="object-cover h-[60px] w-[60px] rounded-full"
+                                />
+                                <div className="flex-1 flex items-center gap-4">
+                                  <h4 className="w-full text-lg font-bold">
+                                    <span className="flex items-center gap-4">
+                                      {" "}
+                                      {data?.username}
+                                      <span className="text-xs font-bold font-booking_font">
+                                        {moment(data?.createdAt).format(
+                                          "DD MMM YYYY"
+                                        )}
+                                      </span>
+                                    </span>
+                                    <span className="block text-sm md:text-base text-grey font-normal">
+                                      {data?.body}
+                                    </span>
+                                  </h4>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

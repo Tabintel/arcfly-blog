@@ -4,30 +4,8 @@ import moment from "moment";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { allPosts } from "@/.contentlayer/generated/index.mjs";
+import Loader from "@/components/loader";
 
-const CommentData = [
-  {
-    id: 4565483929237,
-    shortDescription:
-      " Discover the benefits of sustainable gardening and tips to get started.",
-    author: "Jane Smith",
-    createdAt: "April 15, 2023",
-  },
-  {
-    id: 44547484984,
-    shortDescription:
-      "From sustainable materials to energy-efficient upgrades, we've got you covered.",
-    author: "Michael Johnson",
-    createdAt: "March 28, 2023",
-  },
-  {
-    id: 4745644647884,
-    shortDescription:
-      "Your choices when it comes to your wardrobe. Reduce waste and support ethical brands.",
-    author: "Sarah Lee",
-    createdAt: "February 10, 2023",
-  },
-];
 const MainContent = ({ blogid }) => {
   // console.log(decodeURIComponent(blogid));
   const blog = allPosts?.find(
@@ -35,8 +13,8 @@ const MainContent = ({ blogid }) => {
   );
   const [body, setBody] = useState("");
   const [comment, setComment] = useState([]);
-  // const [comment, setComment] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [commentisloading, setCommentIsLoading] = useState(false);
   // console.log(blog);
   const handleCreateComment = async () => {
     try {
@@ -49,7 +27,10 @@ const MainContent = ({ blogid }) => {
       setLoading(false);
       toast.success("Comment successfully created");
       // setComment(data);
+      setComment([data, ...comment]);
     } catch (error) {
+      setBody("");
+      setLoading(false);
       toast.error(
         error.response && error.response.data.message
           ? error.response.data.message
@@ -62,13 +43,11 @@ const MainContent = ({ blogid }) => {
 
   useEffect(() => {
     const getAllComment = async () => {
+      setCommentIsLoading(true);
       try {
-        setLoading(true);
-        const { data } = await axios.get(
-          `${path}`
-        );
+        const { data } = await axios.get(`${path}`);
         setBody("");
-        setLoading(false);
+        setCommentIsLoading(false);
         setComment(data);
       } catch (error) {
         toast.error(
@@ -79,9 +58,10 @@ const MainContent = ({ blogid }) => {
       }
     };
     getAllComment();
-  }, [setComment, setLoading]);
+  }, [setComment, setCommentIsLoading]);
   return (
     <div className="flex flex-col relative w-full gap-4">
+      {commentisloading && <Loader />}
       {/* {loading && <Loader />} */}
       <div className="w-full flex flex-col gap-8">
         {/* single posts */}
@@ -151,30 +131,48 @@ const MainContent = ({ blogid }) => {
                 <div className="w-full flex flex-col gap-4">
                   <div className="w-full flex p-8 bg-[#fafafa] flex-col gap-8">
                     {/* single posts */}
-                    <div className="flex w-full py-8 flex-col gap-4">
+                    <div className="flex w-full flex-col gap-4">
                       <h4 className="text-4xl font-bold">Comments</h4>
-                      <div className="w-full lg flex flex-col gap-4">
-                        {comment?.map((data, index) => {
-                          return (
-                            <div
-                              key={index}
-                              className="w-full flex items-center gap-4"
-                            >
-                              <img
-                                src={data?.userimage}
-                                alt=""
-                                className="object-cover h-[60px] w-[60px] rounded-full"
-                              />
-                              <h4 className="w-full text-lg font-bold">
-                                {data?.username}
-                                <span className="block text-sm text-grey font-normal">
-                                  {data?.body}
-                                </span>
-                              </h4>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    </div>
+                    <div className="w-full">
+                      {comment?.length === 0 ? (
+                        <span className="block text-xl text-[#000]">
+                          No Comments
+                        </span>
+                      ) : (
+                        <div className="w-full lg flex flex-col gap-4">
+                          {comment?.map((data, index) => {
+                            return (
+                              <div
+                                key={index}
+                                className="w-full flex items-center gap-4"
+                              >
+                                <img
+                                  src={data?.userimage}
+                                  alt=""
+                                  className="object-cover h-[60px] w-[60px] rounded-full"
+                                />
+                                <div className="flex-1 flex items-center gap-4">
+                                  <h4 className="w-full text-lg font-bold">
+                                    <span className="flex items-center gap-4">
+                                      {" "}
+                                      {data?.username}
+                                      <span className="text-xs font-bold font-booking_font">
+                                        {moment(data?.createdAt).format(
+                                          "DD MMM YYYY"
+                                        )}
+                                      </span>
+                                    </span>
+                                    <span className="block text-sm md:text-base text-grey font-normal">
+                                      {data?.body}
+                                    </span>
+                                  </h4>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div className="flex w-full flex-col gap-4">
                       <h4 className="text-2xl font-bold">Leave a Comment</h4>
@@ -197,11 +195,18 @@ const MainContent = ({ blogid }) => {
                   </div>
                   <div className="flex pt-4">
                     <button
-                      disabled={body === ""}
+                      disabled={body === "" || loading}
                       onClick={handleCreateComment}
                       className="btn py-3 px-8 rounded-xl text-white text-lg"
                     >
-                      Submit
+                      {loading ? (
+                        <span className="flex items-center gap-6">
+                          <Loader type={"dots"} />
+                          Comment in progress
+                        </span>
+                      ) : (
+                        "Submit"
+                      )}
                     </button>
                   </div>
                 </div>
